@@ -1,0 +1,165 @@
+#!/usr/bin/env python3
+
+#MIT License
+#Copyright (C) 2019 plasticuproject.pm.me
+#https://github.com/plasticuproject/rest
+#Thanks to mikesZ81 for concept and inital logic
+
+
+from termcolor import cprint
+import subprocess
+import warnings
+import argparse
+import pysftp
+import os
+
+hostname = ''
+user = ''
+port_num = ''
+secret = ''
+key_file = ''
+infile = 'packages.txt'
+logo = ('''
+
+                     _____________________ ____________________
+                     \______   \_   _____//   _____/\__    ___/
+                      |       _/|    __)_ \_____  \   |    |   
+                      |    |   \|        \/        \  |    |   
+                      |____|_  /_______  /_______  /  |____|   
+                             \/        \/        \/            
+''')
+
+
+def banner():
+
+    #print banner information
+    cprint(logo, 'blue', attrs=['bold'],)
+    cprint('\t\t\t      Remote Exploit Scan Tool\n\n', 'red', attrs=['bold'])
+    cprint('A tool to remotely scan Linux system packages via SSH.\n\n', attrs=['bold'])
+    cprint('To use:', 'red')
+    print('Once SSH credentials have been obtained use this tool to remotely scan system')
+    print('packages for known exploits in Exploit-DB.\n')
+    print('example with user and password   | ./rest 192.168.1.100 vera -p eatadick6969 -n 666')
+    print('example with RSA and password    | ./rest 192.168.1.101 jeff -p my_name_a -k ~/.ssh/id_rsa')
+    print('example with RSA and no password | ./rest 192.168.1.102 bigwillystyle -k ~/.ssh/id_rsa\n\n')
+
+
+def get_args():
+
+    # start script and parse arguments
+    global hostname, user, port_num, secret, key_file
+    parser = argparse.ArgumentParser(description=banner())
+    parser.add_argument('host', type=str, metavar='hostname', help='hostname or IP address of remote machine')
+    parser.add_argument('user', type=str, metavar='username', help='username used to login to host.')
+    parser.add_argument('-n', type=int, metavar='port_number', nargs='?', help='port number (default is 22).', default=22)
+    parser.add_argument('-p', type=str, metavar='password', help='password for user.')
+    parser.add_argument('-k', type=str, metavar='key_file', help='location of RSA or DSA Key file')
+    args = parser.parse_args()
+    hostname = args.host
+    user = args.user
+    port_num = args.n
+    secret = args.p
+    key_file = args.k
+
+
+def check_searchsploit():
+
+    # check to see if host machine has searchsploit installed, and if so updates it
+    try:
+        cprint('[*]Updating Searchsploit...[*]', 'green')
+        subprocess.call(['searchsploit', '-u'])
+    except Exception as e:
+        print(e)
+        quit()
+
+
+def password_connect():
+
+    # connects to remote machine via ssh with user/pass combo and downloads list of installed packages
+    cprint('[*]Connecting to {} as {}...[*]'.format(hostname, user), 'green')
+    cnopts = pysftp.CnOpts()
+    cnopts.hostkeys = None
+    with pysftp.Connection(hostname, username=user, password=secret, port=port_num, cnopts=cnopts) as sftp:
+        try:
+            sftp.execute('dpkg -l > {}'.format(infile))
+        except:
+            # TODO add support for Redhat/yum
+            pass
+        cprint('[*]Downloading package list...[*]', 'green')
+        sftp.get(infile)
+        sftp.execute('rm {}'.format(infile))
+
+
+def key_file_connect():
+
+    # connects to remote machine via ssh with private keyfile and downloads list of instaled packages
+    cnopts = pysftp.CnOpts()
+    cnopts.hostkeys = None
+    os.system('eval "$(ssh-agent -s)" && ssh-add {}'.format(key_file))
+    with pysftp.Connection(hostname, username=user, port=port_num, private_key_pass=secret, private_key=key_file, cnopts=cnopts) as sftp:
+         try:
+             sftp.execute('dpkg -l > {}'.format(infile))
+         except:
+             # TODO add support for Redhat/yum
+             pass
+         cprint(['[*]Downloading package list...[*]'], 'green')
+         sftp.get(infile)
+         sftp.execute('rm {}'.format(infile))
+
+
+
+def format_file():
+
+    # format packages.txt file for use in searchsploit
+    packages = []
+    with open('packages.txt', 'r') as pFile:
+        for line in pFile:
+            if line.startswith('ii'):
+                newline = list(filter(None, line.split(' ')))
+                packages.append(newline[1] + ' ' + newline[2])
+    pFile.close()
+    os.system('rm packages.txt')
+    with open('packages.txt', 'a') as pFile:
+        for line in packages:
+            pFile.write(line + '\n')
+    pFile.close()
+
+
+def searchsploit():
+
+    # checkes every package in pacakages.txt against searchsploit database, saves them to file and prints to screen
+    cprint('[*]Checking packages against Searchsploit Database...[*]', 'green')
+    cprint('[*]Please be patient, this may take a few minutes...[*]', 'yellow')
+    os.system('while read line; do searchsploit "$line" linux | grep -v "No Result"; done < packages.txt > exploits.txt')
+    with open('exploits.txt', 'r') as exploits:
+        for line in exploits:
+            print(line)
+    exploits.close()
+    cprint('[*]Writing results to exploits.txt...[*]', 'green')
+    cprint('[*]Done[*]\n', 'green')
+
+
+def main():
+
+    # main program
+    warnings.filterwarnings('ignore')
+    try:
+        get_args()
+        check_searchsploit()
+        try:
+            password_connect()
+        except:
+            try:
+                key_file_connect()
+            except:
+                cprint('[*]Could not connect to {}.[*]'.format(hostname), 'red')
+                quit()
+        format_file()
+        searchsploit()
+    except KeyboardInterrupt:
+        quit()
+
+
+if __name__ == '__main__':
+    main()
+
