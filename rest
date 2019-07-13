@@ -75,7 +75,7 @@ def check_searchsploit():
     # check to see if host machine has searchsploit installed, and if so updates it
     try:
         cprint('[*]Updating Searchsploit...[*]', 'green')
-        #subprocess.call(['searchsploit', '-u'])
+        subprocess.call(['searchsploit', '-u'])
     except Exception as e:
         print(e)
         quit()
