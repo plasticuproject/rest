@@ -13,8 +13,7 @@ cd rest && pip3 install -r requirements.txt
 chmod +x rest
 ./rest --help
 ```
-Currently only works against Debian based systems employing the dpkg package management system. <br />
-There are plans to support other distros and package management systems in the future. <br />
+Currently works against Debian and RHEL based systems. <br />
 Bug testing, additions, and rewrites are welcome, just submit an issue or pull request. <br />
 Thanks to mikesZ81 for concept and inital logic <br />
 

@@ -12,13 +12,21 @@ import warnings
 import argparse
 import pysftp
 import os
+import re
 
+
+platforms = ['linux','linux_crisv32','linux_mips','linux_ppc','linux_sparc','lin_x86','lin_x86-64','multiple']
+badpacks = ('centos','debian','ubuntu','redhat','addon','agent','apps','base','bin','bsd','cache','check','client','command',
+            'common','configuration','control','core','cron','data','database','dev','editor','events','extras','family','file',
+            'files','form','ftp','generic','gnu','headers','http','info','installation','kernel','legacy','linux','load','manager',
+            'message','module','monitor','net','network','one','open','patch','path','plugin','plugins','release','router','secure',
+            'security','server','ssl','software','standard','support','system','team','text','the','theme','time','toolkit','tools',
+            'unix','update','user','utility','viewer','web','wifi','windows','wireless')
 hostname = ''
 user = ''
 port_num = ''
 secret = ''
 key_file = ''
-infile = 'packages.txt'
 logo = ('''
 
                      _____________________ ____________________
@@ -67,7 +75,7 @@ def check_searchsploit():
     # check to see if host machine has searchsploit installed, and if so updates it
     try:
         cprint('[*]Updating Searchsploit...[*]', 'green')
-        subprocess.call(['searchsploit', '-u'])
+        #subprocess.call(['searchsploit', '-u'])
     except Exception as e:
         print(e)
         quit()
@@ -81,13 +89,16 @@ def password_connect():
     cnopts.hostkeys = None
     with pysftp.Connection(hostname, username=user, password=secret, port=port_num, cnopts=cnopts) as sftp:
         try:
-            sftp.execute('dpkg -l > {}'.format(infile))
+            sftp.execute('dpkg -l > packages.txt')
+            sftp.get('packages.txt')
+            sftp.execute('rm packages.txt')
+            format_dpkg_file()
         except:
-            # TODO add support for Redhat/yum
-            pass
+            sftp.execute('rpm -qa > packages.txt')
+            sftp.get('packages.txt')
+            sftp.execute('rm packages.txt')
+            format_rpm_file()
         cprint('[*]Downloading package list...[*]', 'green')
-        sftp.get(infile)
-        sftp.execute('rm {}'.format(infile))
 
 
 def key_file_connect():
@@ -98,25 +109,55 @@ def key_file_connect():
     os.system('eval "$(ssh-agent -s)" && ssh-add {}'.format(key_file))
     with pysftp.Connection(hostname, username=user, port=port_num, private_key_pass=secret, private_key=key_file, cnopts=cnopts) as sftp:
          try:
-             sftp.execute('dpkg -l > {}'.format(infile))
+             sftp.execute('dpkg -l > packages.txt')
+             sftp.get('packages.txt')
+             sftp.execute('rm packages.txt')
+             format_dpkg_file()
          except:
-             # TODO add support for Redhat/yum
-             pass
+             sftp.execute('rpm -qa > packages.txt')
+             sftp.get('packages.txt')
+             sftp.execute('rm packages.txt')
+             format_rpm_file()
          cprint(['[*]Downloading package list...[*]'], 'green')
-         sftp.get(infile)
-         sftp.execute('rm {}'.format(infile))
 
 
-
-def format_file():
+def format_dpkg_file():
 
     # format packages.txt file for use in searchsploit
     packages = []
+    first_field = 1
     with open('packages.txt', 'r') as pFile:
         for line in pFile:
-            if line.startswith('ii'):
-                newline = list(filter(None, line.split(' ')))
-                packages.append(newline[1] + ' ' + newline[2])
+            if line[:2] == 'ii':
+                fields = line.split()
+                if len(fields) < 2 + first_field:
+                    continue
+                # Software name
+                search = fields[first_field].find(':')
+                if search != -1:
+                    soft_name = clean(fields[first_field][:search])
+                else:
+                    soft_name = clean(fields[first_field])
+                # Version
+                search = re.search(r"-|\+|~", fields[first_field + 1])
+                if search:
+                    soft_version = fields[first_field + 1][:search.span()[0]]
+                else:
+                    soft_version = fields[first_field + 1]
+                search = soft_version.find(':')
+                if search != -1:
+                    soft_version = soft_version[search + 1:]
+                soft_version = cleanVersionString(soft_version)
+                if not soft_name or not soft_version:
+                    continue
+                if '-' in soft_name:
+                    for sub_package in soft_name.split('-'):
+                        if len(sub_package)>2 and '.' not in sub_package and sub_package not in badpacks:
+                            name_version = sub_package +' ' + soft_version
+                else:
+                    if soft_name not in badpacks:
+                        name_version = soft_name + ' ' + soft_version
+                packages.append(name_version)
     pFile.close()
     os.system('rm packages.txt')
     with open('packages.txt', 'a') as pFile:
@@ -125,13 +166,61 @@ def format_file():
     pFile.close()
 
 
+def format_rpm_file():
+
+    #format packages.txt file for use in searchsploit
+    packages = []
+    with open('packages.txt', 'r') as pFile:
+        for line in pFile:
+            fields = '.'.join(line.split('.')[:-2]).split('-')
+            if len(fields) < 2:
+                continue
+            soft_name = clean('-'.join(fields[:-2]))
+            soft_version = cleanVersionString(fields[-2])
+            if not soft_name or not soft_version:
+                continue
+            if '-' in soft_name:
+                for sub_package in soft_name.split('-'):
+                    if len(sub_package)> 2 and '.' not in sub_package and sub_package not in badpacks:
+                        name_version = sub_package + ' ' + soft_verson
+            else:
+                if soft_name not in badpacks:
+                    name_version = soft_name + ' ' + soft_version
+            packages.append(name_version)
+    pFile.close()
+    os.system('rm packages.txt')
+    with open('packages.txt', 'a') as pFIle:
+        for line in packages:
+            pFIle.write(line + '\n')
+    pFile.close()
+
+
+def clean(soft_name):
+
+    # clean package name from common strings
+    for badword in badpacks:
+        soft_name = re.sub(r'-' + badword, '', soft_name)
+    return soft_name
+
+
+def cleanVersionString(version_string):
+
+    # eliminate invalid characters and last dot from version string
+    search = re.search(r'[^0-9.]', version_string)
+    if search: result = version_string[:search.span()[0]]
+    else: result = version_string
+    if len(result) > 0 and result[-1] == '.': result = result[:-1]
+    return result
+
+
 def searchsploit():
 
-    # checkes every package in pacakages.txt against searchsploit database, saves them to file and prints to screen
+    # checks every package in pacakages.txt against searchsploit database, saves them to file and prints to screen
     cprint('[*]Checking packages against Searchsploit Database...[*]', 'green')
     cprint('[*]Please be patient, this may take a few minutes...[*]', 'yellow')
     os.system('while read line; do searchsploit "$line" linux | grep -v "No Result"; done < packages.txt > exploits.txt')
     with open('exploits.txt', 'r') as exploits:
+        cprint('[*]Possible exploits available for PrivEsc...[*]')
         for line in exploits:
             print(line)
     exploits.close()
@@ -148,13 +237,14 @@ def main():
         check_searchsploit()
         try:
             password_connect()
-        except:
+        except Exception as e:
+            print(e)
             try:
                 key_file_connect()
-            except:
+            except Exception as e:
+                print(e)
                 cprint('[*]Could not connect to {}.[*]'.format(hostname), 'red')
                 quit()
-        format_file()
         searchsploit()
     except KeyboardInterrupt:
         quit()
