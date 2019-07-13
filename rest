@@ -88,12 +88,11 @@ def password_connect():
     cnopts = pysftp.CnOpts()
     cnopts.hostkeys = None
     with pysftp.Connection(hostname, username=user, password=secret, port=port_num, cnopts=cnopts) as sftp:
-        try:
-            sftp.execute('dpkg -l > packages.txt')
-            sftp.get('packages.txt')
-            sftp.execute('rm packages.txt')
-            format_dpkg_file()
-        except:
+        sftp.execute('dpkg -l > packages.txt')
+        sftp.get('packages.txt')
+        sftp.execute('rm packages.txt')
+        format_dpkg_file()
+        if os.stat('packages.txt').st_size == 0:
             sftp.execute('rpm -qa > packages.txt')
             sftp.get('packages.txt')
             sftp.execute('rm packages.txt')
@@ -108,12 +107,11 @@ def key_file_connect():
     cnopts.hostkeys = None
     os.system('eval "$(ssh-agent -s)" && ssh-add {}'.format(key_file))
     with pysftp.Connection(hostname, username=user, port=port_num, private_key_pass=secret, private_key=key_file, cnopts=cnopts) as sftp:
-         try:
-             sftp.execute('dpkg -l > packages.txt')
-             sftp.get('packages.txt')
-             sftp.execute('rm packages.txt')
-             format_dpkg_file()
-         except:
+         sftp.execute('dpkg -l > packages.txt')
+         sftp.get('packages.txt')
+         sftp.execute('rm packages.txt')
+         format_dpkg_file()
+         if os.stat('packages.txt').st_size == 0:
              sftp.execute('rpm -qa > packages.txt')
              sftp.get('packages.txt')
              sftp.execute('rm packages.txt')
@@ -180,7 +178,7 @@ def format_rpm_file():
             if '-' in soft_name:
                 for sub_package in soft_name.split('-'):
                     if len(sub_package)> 2 and '.' not in sub_package and sub_package not in badpacks:
-                        name_version = sub_package + ' ' + soft_verson
+                        name_version = sub_package + ' ' + soft_version
             else:
                 if soft_name not in badpacks:
                     name_version = soft_name + ' ' + soft_version
@@ -226,11 +224,23 @@ def searchsploit():
     cprint('[*]Done[*]\n', 'green')
 
 
+def clean_old():
+    try:
+        os.system('rm exploits.txt')
+    except:
+        pass
+    try:
+        os.system('rm packages.txt')
+    except:
+        pass
+
+
 def main():
 
     # main program
     warnings.filterwarnings('ignore')
     try:
+        clean_old()
         get_args()
         check_searchsploit()
         try:
