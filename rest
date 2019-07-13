@@ -132,13 +132,11 @@ def format_dpkg_file():
                 fields = line.split()
                 if len(fields) < 2 + first_field:
                     continue
-                # Software name
                 search = fields[first_field].find(':')
                 if search != -1:
                     soft_name = clean(fields[first_field][:search])
                 else:
                     soft_name = clean(fields[first_field])
-                # Version
                 search = re.search(r"-|\+|~", fields[first_field + 1])
                 if search:
                     soft_version = fields[first_field + 1][:search.span()[0]]
@@ -220,7 +218,7 @@ def searchsploit():
     cprint('[*]Please be patient, this may take a few minutes...[*]', 'yellow')
     os.system('while read line; do searchsploit "$line" linux | grep -v "No Result"; done < packages.txt > exploits.txt')
     with open('exploits.txt', 'r') as exploits:
-        cprint('[*]Possible exploits available for PrivEsc...[*]')
+        cprint('[*]Possible exploits available for PrivEsc...[*]', 'blue')
         for line in exploits:
             print(line)
     exploits.close()
