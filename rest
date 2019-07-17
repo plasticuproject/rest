@@ -205,11 +205,7 @@ def searchsploit():
         cprint('[*]Checking packages against Searchsploit Database...[*]', 'green')
         cprint('[*]Please be patient, this may take a few minutes...[*]', 'yellow')
         os.system('while read line; do searchsploit "$line" linux | grep -v "No Result"; done < packages.txt > exploits.txt')
-        with open('exploits.txt', 'r') as exploits:
-            cprint('[*]Possible exploits available for PrivEsc...[*]', 'blue')
-            for line in exploits:
-                print(line)
-        exploits.close()
+        subprocess.call(['cat', 'exploits.txt'])
         cprint('[*]Writing results to exploits.txt...[*]', 'green')
         cprint('[*]Done[*]\n', 'green')
     except Exception as e:
