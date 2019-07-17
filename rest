@@ -70,17 +70,6 @@ def get_args():
     key_file = args.k
 
 
-def check_searchsploit():
-
-    # check to see if host machine has searchsploit installed, and if so updates it
-    try:
-        cprint('[*]Updating Searchsploit...[*]', 'green')
-        subprocess.call(['searchsploit', '-u'])
-    except Exception as e:
-        print(e)
-        quit()
-
-
 def password_connect():
 
     # connects to remote machine via ssh with user/pass combo and downloads list of installed packages
@@ -212,16 +201,20 @@ def cleanVersionString(version_string):
 def searchsploit():
 
     # checks every package in pacakages.txt against searchsploit database, saves them to file and prints to screen
-    cprint('[*]Checking packages against Searchsploit Database...[*]', 'green')
-    cprint('[*]Please be patient, this may take a few minutes...[*]', 'yellow')
-    os.system('while read line; do searchsploit "$line" linux | grep -v "No Result"; done < packages.txt > exploits.txt')
-    with open('exploits.txt', 'r') as exploits:
-        cprint('[*]Possible exploits available for PrivEsc...[*]', 'blue')
-        for line in exploits:
-            print(line)
-    exploits.close()
-    cprint('[*]Writing results to exploits.txt...[*]', 'green')
-    cprint('[*]Done[*]\n', 'green')
+    try:
+        cprint('[*]Checking packages against Searchsploit Database...[*]', 'green')
+        cprint('[*]Please be patient, this may take a few minutes...[*]', 'yellow')
+        os.system('while read line; do searchsploit "$line" linux | grep -v "No Result"; done < packages.txt > exploits.txt')
+        with open('exploits.txt', 'r') as exploits:
+            cprint('[*]Possible exploits available for PrivEsc...[*]', 'blue')
+            for line in exploits:
+                print(line)
+        exploits.close()
+        cprint('[*]Writing results to exploits.txt...[*]', 'green')
+        cprint('[*]Done[*]\n', 'green')
+    except Exception as e:
+        print(e)
+        quit()
 
 
 def clean_old():
@@ -242,7 +235,6 @@ def main():
     try:
         clean_old()
         get_args()
-        check_searchsploit()
         try:
             password_connect()
         except Exception as e:
