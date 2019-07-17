@@ -214,12 +214,16 @@ def searchsploit():
 
 
 def clean_old():
+            
+    # removes files from past runs
     try:
-        os.system('rm exploits.txt')
+        with open(os.devnull, 'w') as fp:
+            subprocess.call(['rm', 'exploits.txt'], stdout=fp, stderr=fp)
     except:
         pass
     try:
-        os.system('rm packages.txt')
+        with open(os.devnull, 'w') as fp:
+            subprocess.call(['rm', 'packages.txt'], stdout=fp, stderr=fp)
     except:
         pass
 
