@@ -1,6 +1,7 @@
 # rest
 Remote Exploit Scan Tool <br /> 
-A tool to remotely scan Linux system packages via SSH. <br />
+Use SSH credentials to remotely scan linux system <br />
+packages for known exploits in Exploit-DB <br />
 
 Currently works against Debian and RHEL based systems. <br />
 Bug testing, additions, and rewrites are welcome, just submit an issue or pull request. <br />
