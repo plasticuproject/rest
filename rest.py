@@ -94,6 +94,7 @@ def password_connect(hostname, user, secret, port_num):
 def key_file_connect(hostname, user, port_num, secret, key_file):
 
     # connects to remote machine via ssh with private keyfile and downloads list of instaled packages
+    cprint('[*]Connecting to {} as {}...[*]'.format(hostname, user), 'green')
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(hostname, username=user, password=secret, port=port_num, key_filename=key_file)
