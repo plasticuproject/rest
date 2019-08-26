@@ -63,7 +63,7 @@ def check_searchsploit():
         quit()
 
 
-def transfer():
+def transfer(ssh):
 
     # downloads list of installed packages
     sftp = ssh.open_sftp()
@@ -88,7 +88,7 @@ def password_connect(hostname, user, secret, port_num):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(hostname, username=user, password=secret, port=port_num)
-    transfer()
+    transfer(ssh)
 
 
 def key_file_connect(hostname, user, port_num, secret, key_file):
@@ -97,7 +97,7 @@ def key_file_connect(hostname, user, port_num, secret, key_file):
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(hostname, username=user, password=secret, port=port_num, key_filename=key_file)
-    transfer()
+    transfer(ssh)
 
 
 def format_dpkg_file():
@@ -199,7 +199,7 @@ def searchsploit():
     cprint('[*]Checking packages against Searchsploit Database...[*]', 'green')
     cprint('[*]Please be patient, this may take a few minutes...[*]', 'yellow')
     no_result = 'Exploits: No Result\nShellcodes: No Result\n'
-    pack = []
+    packs = []
     with open('packages.txt', 'r') as f:
         packages = f.read().split('\n')
     for package in packages:
