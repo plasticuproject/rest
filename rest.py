@@ -37,8 +37,9 @@ def info():
     #print tool information
     cprint('\nRemote Exploit Scan Tool', 'red', attrs=['bold'])
     cprint('Remotely scan Linux system packages via SSH.\n', attrs=['bold'])
-    print('Use SSH credentials to remotely scan system')
-    print('packages for known exploits in Exploit-DB.\n')
+    print('Use SSH credentials to remotely scan linux system')
+    print('packages for known exploits in Exploit-DB and run\n')
+    print('basic enumeration scripts.')
 
 
 def get_args():
@@ -50,6 +51,7 @@ def get_args():
     parser.add_argument('-n', type=int, metavar='port_number', nargs='?', help='port number (default is 22).', default=22)
     parser.add_argument('-p', type=str, metavar='password', help='password for user.')
     parser.add_argument('-k', type=str, metavar='key_file', help='location of RSA or DSA Key file')
+    parser.add_argument('-le', action='store_true', help='Run LinEnum.sh and return LE_report')
     args = parser.parse_args()
     return args
 
@@ -63,7 +65,7 @@ def check_searchsploit():
         quit()
 
 
-def transfer(ssh):
+def transfer(ssh, lin_enum):
 
     # downloads list of installed packages
     sftp = ssh.open_sftp()
@@ -77,28 +79,64 @@ def transfer(ssh):
         sftp.get('packages.txt', local_path)
         ssh.exec_command('rm packages.txt')
         format_rpm_file()
-    ssh.close()
     cprint('[*]Downloading package list...[*]', 'green')
+    if lin_enum == True:
+        run_lin_enum(ssh)
+    ssh.close()
 
 
-def password_connect(hostname, user, secret, port_num):
+def sftp_exists(sftp, path):
+
+    # check if report file is present
+    try:
+        sftp.stat(path)
+        return True
+    except FileNotFoundError:
+        return False
+
+
+def run_lin_enum(ssh):
+
+    # run LinEnum.sh on remote machine
+    cprint('[*]Running LinEnum.sh...[*]', 'green')
+    sftp = ssh.open_sftp()
+    script = pathlib.Path.cwd() / 'scripts/LinEnum.sh'
+    sftp.put(script, '/tmp/LinEnum.sh')
+    transport = ssh.get_transport()
+    channel = transport.open_session()
+    channel.exec_command('chmod +x /tmp/LinEnum.sh && /tmp/./LinEnum.sh -r /tmp/LE_report')
+    report = pathlib.Path.cwd() / 'LE_report'
+    finished = 'SCAN COMPLETE'
+    running = True
+    while running:
+        if sftp_exists(sftp, '/tmp/LE_report') == True:
+            remote_file = sftp.open('/tmp/LE_report', 'r')
+            for line in remote_file:
+                if finished in line:
+                    cprint('[*]Downloading LinEnum.sh LE_report...[*]', 'green')
+                    sftp.get('/tmp/LE_report', report)
+                    running = False
+    ssh.exec_command('rm /tmp/LE_report')
+    ssh.exec_command('rm /tmp/LinEnum.sh')
+
+def password_connect(hostname, user, secret, port_num, lin_enum):
 
     # connects to remote machine via ssh with user/pass combo
     cprint('[*]Connecting to {} as {}...[*]'.format(hostname, user), 'green')
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(hostname, username=user, password=secret, port=port_num)
-    transfer(ssh)
+    transfer(ssh, lin_enum)
 
 
-def key_file_connect(hostname, user, port_num, secret, key_file):
+def key_file_connect(hostname, user, port_num, secret, key_file, lin_enum):
 
     # connects to remote machine via ssh with private keyfile and downloads list of instaled packages
     cprint('[*]Connecting to {} as {}...[*]'.format(hostname, user), 'green')
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(hostname, username=user, password=secret, port=port_num, key_filename=key_file)
-    transfer(ssh)
+    transfer(ssh, lin_enum)
 
 
 def format_dpkg_file():
@@ -225,6 +263,9 @@ def clean_old():
     path = pathlib.Path.cwd() / 'exploits.txt'
     if path.is_file():
         path.unlink()
+    path = pathlib.Path.cwd() / 'LE_report'
+    if path.is_file():
+        path.unlink()
 
 
 def main():
@@ -236,9 +277,9 @@ def main():
         args = get_args()
         try:
             if args.k == None:
-                password_connect(args.host, args.user, args.p, args.n)
+                password_connect(args.host, args.user, args.p, args.n, args.l)
             elif args.k != None:
-                key_file_connect(args.host, args.user, args.p, args.n, args.k)
+                key_file_connect(args.host, args.user, args.p, args.n, args.k, args.l)
         except ssh_errors as e:
             print(e)
             cprint('[*]Could not connect to {}.[*]'.format(args.host), 'red')

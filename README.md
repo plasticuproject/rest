@@ -1,7 +1,8 @@
 # rest
 Remote Exploit Scan Tool <br /> 
 Use SSH credentials to remotely scan linux system <br />
-packages for known exploits in Exploit-DB <br />
+packages for known exploits in Exploit-DB and run <br />
+basic enumeration scripts. <br />
 
 Currently works against Debian and RHEL based systems. <br />
 Bug testing, additions, and rewrites are welcome, just submit an issue or pull request. <br />
@@ -23,7 +24,7 @@ Thanks to mikesz81 for concept and nbulischeck for code review. <br />
 ## Usage
 
 ```
-usage: rest.py [-h] [-n [port_number]] [-p password] [-k key_file]
+usage: rest.py [-h] [-n [port_number]] [-p password] [-k key_file] [-le]
                hostname username
 
 positional arguments:
@@ -35,10 +36,12 @@ optional arguments:
   -n [port_number]  port number (default is 22).
   -p password       password for user.
   -k key_file       location of RSA or DSA Key file
+  -le               Run LinEnum.sh and return LE_report
 ```
 
 Examples:
 
 `./rest.py 192.168.1.100 vera -p eatadick6969 -n 666` <br />
 `./rest.py 192.168.1.101 jeff -p my_name_a -k ~/.ssh/id_rsa` <br />
-`./rest.py 192.168.1.102 bigwillystyle -k ~/.ssh/id_rsa`
+`./rest.py 192.168.1.102 bigwillystyle -k ~/.ssh/id_rsa` <br />
+`./rest.py 192.168.1.103 chuck -p nbuck -le`
