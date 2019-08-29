@@ -36,7 +36,7 @@ optional arguments:
   -n [port_number]  port number (default is 22).
   -p password       password for user.
   -k key_file       location of RSA or DSA Key file
-  -le               Run LinEnum.sh and return LE_report
+  -le               run LinEnum.sh and return LE_report
 ```
 
 Examples:

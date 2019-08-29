@@ -51,7 +51,7 @@ def get_args():
     parser.add_argument('-n', type=int, metavar='port_number', nargs='?', help='port number (default is 22).', default=22)
     parser.add_argument('-p', type=str, metavar='password', help='password for user.')
     parser.add_argument('-k', type=str, metavar='key_file', help='location of RSA or DSA Key file')
-    parser.add_argument('-le', action='store_true', help='Run LinEnum.sh and return LE_report')
+    parser.add_argument('-le', action='store_true', help='run LinEnum.sh and return LE_report')
     args = parser.parse_args()
     return args
 
@@ -104,7 +104,7 @@ def run_lin_enum(ssh):
     sftp.put(script, '/tmp/LinEnum.sh')
     transport = ssh.get_transport()
     channel = transport.open_session()
-    channel.exec_command('chmod +x /tmp/LinEnum.sh && /tmp/./LinEnum.sh -r /tmp/LE_report')
+    channel.exec_command('chmod +x /tmp/LinEnum.sh && /tmp/./LinEnum.sh -r /tmp/LE_report -t')
     report = pathlib.Path.cwd() / 'LE_report'
     finished = 'SCAN COMPLETE'
     running = True
