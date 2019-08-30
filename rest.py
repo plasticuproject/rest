@@ -39,7 +39,7 @@ def info():
     cprint('Remotely scan Linux system packages via SSH.\n', attrs=['bold'])
     print('Use SSH credentials to remotely scan linux system')
     print('packages for known exploits in Exploit-DB and run')
-    print('basic enumeration scripts.')
+    print('basic enumeration scripts.\n')
 
 
 def get_args():
@@ -52,6 +52,7 @@ def get_args():
     parser.add_argument('-p', type=str, metavar='password', help='password for user.')
     parser.add_argument('-k', type=str, metavar='key_file', help='location of RSA or DSA Key file')
     parser.add_argument('-le', action='store_true', help='run LinEnum.sh and return LE_report')
+    parser.add_argument('-t', action='store_true', help='add thorough switch to -le LinEnum.sh')
     args = parser.parse_args()
     return args
 
@@ -65,7 +66,7 @@ def check_searchsploit():
         quit()
 
 
-def transfer(ssh, lin_enum):
+def transfer(ssh, lin_enum, lin_enum_t):
 
     # downloads list of installed packages
     sftp = ssh.open_sftp()
@@ -81,7 +82,7 @@ def transfer(ssh, lin_enum):
         format_rpm_file()
     cprint('[*]Downloading package list...[*]', 'green')
     if lin_enum == True:
-        run_lin_enum(ssh)
+        run_lin_enum(ssh, lin_enum_t)
     ssh.close()
 
 
@@ -95,48 +96,58 @@ def sftp_exists(sftp, path):
         return False
 
 
-def run_lin_enum(ssh):
+def run_lin_enum(ssh, lin_enum_t):
 
     # run LinEnum.sh on remote machine
-    cprint('[*]Running LinEnum.sh...[*]', 'green')
+    cprint('[*]Running LinEnum.sh.[*]', 'green')
+    cprint('[*]This may take a few minutes...[*]', 'green')
     sftp = ssh.open_sftp()
     script = pathlib.Path.cwd() / 'scripts/LinEnum.sh'
     sftp.put(script, '/tmp/LinEnum.sh')
     transport = ssh.get_transport()
     channel = transport.open_session()
-    channel.exec_command('chmod +x /tmp/LinEnum.sh && /tmp/./LinEnum.sh -r /tmp/LE_report -t')
+    command = 'chmod +x /tmp/LinEnum.sh && /tmp/./LinEnum.sh -r /tmp/LE_report'
+    command_t = command + ' -t'
+    if sftp_exists(sftp, '/tmp/LE_report') == True:
+        ssh.exec_command('rm /tmp/LE_report')
+    if lin_enum_t == False:
+        channel.exec_command(command)
+    elif lin_enum_t == True:
+        channel.exec_command(command_t)
     report = pathlib.Path.cwd() / 'LE_report'
-    finished = 'SCAN COMPLETE'
+    finished = '### SCAN COMPLETE ###'
     running = True
     while running:
         if sftp_exists(sftp, '/tmp/LE_report') == True:
-            remote_file = sftp.open('/tmp/LE_report', 'r')
+            ssh.exec_command('cp /tmp/LE_report /tmp/LE_report_test')
+            remote_file = sftp.open('/tmp/LE_report_test', 'r')
             for line in remote_file:
                 if finished in line:
-                    cprint('[*]Downloading LinEnum.sh LE_report...[*]', 'green')
-                    sftp.get('/tmp/LE_report', report)
                     running = False
+    cprint('[*]Downloading LinEnum.sh LE_report...[*]', 'green')
+    sftp.get('/tmp/LE_report', report)
     ssh.exec_command('rm /tmp/LE_report')
+    ssh.exec_command('rm /tmp/LE_report_test')
     ssh.exec_command('rm /tmp/LinEnum.sh')
 
-def password_connect(hostname, user, secret, port_num, lin_enum):
+def password_connect(hostname, user, secret, port_num, lin_enum, lin_enum_t):
 
     # connects to remote machine via ssh with user/pass combo
     cprint('[*]Connecting to {} as {}...[*]'.format(hostname, user), 'green')
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(hostname, username=user, password=secret, port=port_num)
-    transfer(ssh, lin_enum)
+    transfer(ssh, lin_enum, lin_enum_t)
 
 
-def key_file_connect(hostname, user, port_num, secret, key_file, lin_enum):
+def key_file_connect(hostname, user, port_num, secret, key_file, lin_enum, lin_enum_t):
 
     # connects to remote machine via ssh with private keyfile and downloads list of instaled packages
     cprint('[*]Connecting to {} as {}...[*]'.format(hostname, user), 'green')
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(hostname, username=user, password=secret, port=port_num, key_filename=key_file)
-    transfer(ssh, lin_enum)
+    transfer(ssh, lin_enum, lin_enum_t)
 
 
 def format_dpkg_file():
@@ -277,9 +288,9 @@ def main():
         args = get_args()
         try:
             if args.k == None:
-                password_connect(args.host, args.user, args.p, args.n, args.le)
+                password_connect(args.host, args.user, args.p, args.n, args.le, args.t)
             elif args.k != None:
-                key_file_connect(args.host, args.user, args.p, args.n, args.k, args.le)
+                key_file_connect(args.host, args.user, args.p, args.n, args.k, args.le, args.t)
         except ssh_errors as e:
             print(e)
             cprint('[*]Could not connect to {}.[*]'.format(args.host), 'red')

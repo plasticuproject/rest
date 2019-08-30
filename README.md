@@ -37,6 +37,7 @@ optional arguments:
   -p password       password for user.
   -k key_file       location of RSA or DSA Key file
   -le               run LinEnum.sh and return LE_report
+  -t                add thorough switch to -le LinEnum.sh
 ```
 
 Examples:
@@ -44,4 +45,5 @@ Examples:
 `./rest.py 192.168.1.100 vera -p eatadick6969 -n 666` <br />
 `./rest.py 192.168.1.101 jeff -p my_name_a -k ~/.ssh/id_rsa` <br />
 `./rest.py 192.168.1.102 bigwillystyle -k ~/.ssh/id_rsa` <br />
-`./rest.py 192.168.1.103 chuck -p nbuck -le`
+`./rest.py 192.168.1.103 chuck -p nbuck -le` <br />
+`./rest.py 192.168.1.104 buck -p nchuck -le -t`
