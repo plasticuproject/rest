@@ -265,7 +265,7 @@ def searchsploit():
     cprint('[*]Done[*]\n', 'green')
 
 
-def clean_old():
+def clean_old(lin_enum):
             
     # removes files from past runs
     path = pathlib.Path.cwd() / 'packages.txt'
@@ -275,8 +275,9 @@ def clean_old():
     if path.is_file():
         path.unlink()
     path = pathlib.Path.cwd() / 'LE_report'
-    if path.is_file():
-        path.unlink()
+    if lin_enum == True:
+        if path.is_file():
+            path.unlink()
 
 
 def main():
@@ -287,10 +288,10 @@ def main():
         args = get_args()
         try:
             if args.k == None:
-                clean_old()
+                clean_old(args.le)
                 password_connect(args.host, args.user, args.p, args.n, args.le, args.t)
             elif args.k != None:
-                clean_old()
+                clean_old(args.le)
                 key_file_connect(args.host, args.user, args.p, args.n, args.k, args.le, args.t)
         except ssh_errors as e:
             print(e)
