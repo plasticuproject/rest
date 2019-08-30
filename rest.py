@@ -284,12 +284,13 @@ def main():
     # run program
     try:
         check_searchsploit()
-        clean_old()
         args = get_args()
         try:
             if args.k == None:
+                clean_old()
                 password_connect(args.host, args.user, args.p, args.n, args.le, args.t)
             elif args.k != None:
+                clean_old()
                 key_file_connect(args.host, args.user, args.p, args.n, args.k, args.le, args.t)
         except ssh_errors as e:
             print(e)
