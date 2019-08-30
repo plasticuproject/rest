@@ -279,7 +279,7 @@ def main():
             if args.k == None:
                 password_connect(args.host, args.user, args.p, args.n, args.le)
             elif args.k != None:
-                key_file_connect(args.host, args.user, args.p, args.n, args.k, args.l)
+                key_file_connect(args.host, args.user, args.p, args.n, args.k, args.le)
         except ssh_errors as e:
             print(e)
             cprint('[*]Could not connect to {}.[*]'.format(args.host), 'red')
