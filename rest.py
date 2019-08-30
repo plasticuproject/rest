@@ -37,8 +37,8 @@ def info():
     #print tool information
     cprint('\nRemote Exploit Scan Tool', 'red', attrs=['bold'])
     cprint('Remotely scan Linux system packages via SSH.\n', attrs=['bold'])
-    print('Use SSH credentials to remotely scan linux system')
-    print('packages for known exploits in Exploit-DB and run\n')
+    print('Use SSH credentials to remotely scan linux system\n')
+    print('packages for known exploits in Exploit-DB and run')
     print('basic enumeration scripts.')
 
 
