@@ -24,7 +24,7 @@ Thanks to mikesz81 for concept and nbulischeck for code review. <br />
 ## Usage
 
 ```
-usage: rest.py [-h] [-n [port_number]] [-p password] [-k key_file] [-le]
+usage: rest.py [-h] [-n [port_number]] [-p password] [-k key_file] [-le] [-t]
                hostname username
 
 positional arguments:
