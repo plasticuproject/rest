@@ -51,7 +51,7 @@ def get_args():
     parser.add_argument('-n', type=int, metavar='port_number', nargs='?', help='port number (default is 22)', default=22)
     parser.add_argument('-p', type=str, metavar='password', help='password for user')
     parser.add_argument('-k', type=str, metavar='key_file', help='location of RSA or DSA Key file')
-    parser.add_argument('-ss', action='store_true', help='run run package list against searchsploit database')
+    parser.add_argument('-ss', action='store_true', help='run package list against searchsploit database')
     parser.add_argument('-le', action='store_true', help='run LinEnum.sh and return LE_report')
     parser.add_argument('-t', action='store_true', help='add thorough switch to -le LinEnum.sh')
     parser.add_argument('-ps', action='store_true', help='run pspy64 or pspy32 with defaults and return pspy_out')
@@ -156,7 +156,6 @@ def run_pspy(ssh):
             outfile.write(line)
     ssh.exec_command('rm /tmp/pspy')
     cprint('[*]Saving pspy_out...[*]', 'green')
-
 
 
 def password_connect(hostname, user, secret, port_num, lin_enum, lin_enum_t, pspy):

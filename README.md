@@ -36,7 +36,7 @@ optional arguments:
   -n [port_number]  port number (default is 22)
   -p password       password for user
   -k key_file       location of RSA or DSA Key file
-  -ss               run run package list against searchsploit database
+  -ss               run package list against searchsploit database
   -le               run LinEnum.sh and return LE_report
   -t                add thorough switch to -le LinEnum.sh
   -ps               run pspy64 or pspy32 with defaults and return pspy_out
