@@ -19,7 +19,7 @@ Thanks to mikesz81 for concept and nbulischeck for code review. <br />
 
 > **Note:**
 > It is recommended to git clone this repository into a python virtual <br /> 
-> envirnment and run `pip install -r requirments.txt`
+> envirnment and run `pip install -r requirements.txt`
 
 ## Usage
 
