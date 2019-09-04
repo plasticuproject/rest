@@ -47,12 +47,14 @@ def get_args():
     # parse arguments
     parser = argparse.ArgumentParser(description=info())
     parser.add_argument('host', type=str, metavar='hostname', help='hostname or IP address of remote machine')
-    parser.add_argument('user', type=str, metavar='username', help='username used to login to host.')
-    parser.add_argument('-n', type=int, metavar='port_number', nargs='?', help='port number (default is 22).', default=22)
-    parser.add_argument('-p', type=str, metavar='password', help='password for user.')
+    parser.add_argument('user', type=str, metavar='username', help='username used to login to host')
+    parser.add_argument('-n', type=int, metavar='port_number', nargs='?', help='port number (default is 22)', default=22)
+    parser.add_argument('-p', type=str, metavar='password', help='password for user')
     parser.add_argument('-k', type=str, metavar='key_file', help='location of RSA or DSA Key file')
+    parser.add_argument('-ss', action='store_true', help='run run package list against searchsploit database')
     parser.add_argument('-le', action='store_true', help='run LinEnum.sh and return LE_report')
     parser.add_argument('-t', action='store_true', help='add thorough switch to -le LinEnum.sh')
+    parser.add_argument('-ps', action='store_true', help='run pspy64 or pspy32 with defaults and return pspy_out')
     args = parser.parse_args()
     return args
 
@@ -66,7 +68,7 @@ def check_searchsploit():
         quit()
 
 
-def transfer(ssh, lin_enum, lin_enum_t):
+def transfer(ssh, lin_enum, lin_enum_t, pspy):
 
     # downloads list of installed packages
     sftp = ssh.open_sftp()
@@ -83,6 +85,8 @@ def transfer(ssh, lin_enum, lin_enum_t):
     cprint('[*]Downloading package list...[*]', 'green')
     if lin_enum == True:
         run_lin_enum(ssh, lin_enum_t)
+    if pspy == True:
+        run_pspy(ssh)
     ssh.close()
 
 
@@ -130,24 +134,49 @@ def run_lin_enum(ssh, lin_enum_t):
     ssh.exec_command('rm /tmp/LE_report_test')
     ssh.exec_command('rm /tmp/LinEnum.sh')
 
-def password_connect(hostname, user, secret, port_num, lin_enum, lin_enum_t):
+
+def run_pspy(ssh):
+
+    # run pspy on remote machine
+    stdin, stdout, stderr = ssh.exec_command('uname -p')
+    arch_check = stdout.readline()
+    if arch_check == 'x86_64\n':
+        cprint('[*]Running pspy64 for 2 minutes...[*]', 'green')
+        script = pathlib.Path.cwd() / 'scripts/pspy64'
+    else:
+        cprint('[*]Running pspy32 for 2 minutes...[*]', 'green')
+        script = pathlib.Path.cwd() / 'scripts/pspy32'
+    sftp = ssh.open_sftp()
+    sftp.put(script, '/tmp/pspy')
+    command = 'chmod +x /tmp/pspy && timeout 30 /tmp/./pspy'
+    stdin, stdout, stderr = ssh.exec_command(command)
+    for line in iter(stdout.readline, ''):
+        print(line, end='')
+        with open('pspy_out', 'a') as outfile:
+            outfile.write(line)
+    ssh.exec_command('rm /tmp/pspy')
+    cprint('[*]Saving pspy_out...[*]', 'green')
+
+
+
+def password_connect(hostname, user, secret, port_num, lin_enum, lin_enum_t, pspy):
 
     # connects to remote machine via ssh with user/pass combo
     cprint('[*]Connecting to {} as {}...[*]'.format(hostname, user), 'green')
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(hostname, username=user, password=secret, port=port_num)
-    transfer(ssh, lin_enum, lin_enum_t)
+    transfer(ssh, lin_enum, lin_enum_t, pspy)
 
 
-def key_file_connect(hostname, user, port_num, secret, key_file, lin_enum, lin_enum_t):
+def key_file_connect(hostname, user, port_num, secret, key_file, lin_enum, lin_enum_t, pspy):
 
     # connects to remote machine via ssh with private keyfile and downloads list of instaled packages
     cprint('[*]Connecting to {} as {}...[*]'.format(hostname, user), 'green')
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(hostname, username=user, password=secret, port=port_num, key_filename=key_file)
-    transfer(ssh, lin_enum, lin_enum_t)
+    transfer(ssh, lin_enum, lin_enum_t, pspy)
 
 
 def format_dpkg_file():
@@ -262,10 +291,9 @@ def searchsploit():
     with open('exploits.txt', 'a') as exploits:
         for pack in packs:
             exploits.write(pack)
-    cprint('[*]Done[*]\n', 'green')
 
 
-def clean_old(lin_enum):
+def clean_old(lin_enum, pspy):
             
     # removes files from past runs
     path = pathlib.Path.cwd() / 'packages.txt'
@@ -278,26 +306,32 @@ def clean_old(lin_enum):
     if lin_enum == True:
         if path.is_file():
             path.unlink()
+    path = pathlib.Path.cwd() / 'pspy_out'
+    if pspy == True:
+        if path.is_file():
+            path.unlink()
 
 
 def main():
 
     # run program
     try:
-        check_searchsploit()
         args = get_args()
         try:
             if args.k == None:
-                clean_old(args.le)
-                password_connect(args.host, args.user, args.p, args.n, args.le, args.t)
+                clean_old(args.le, args.ps)
+                password_connect(args.host, args.user, args.p, args.n, args.le, args.t, args.ps)
             elif args.k != None:
-                clean_old(args.le)
-                key_file_connect(args.host, args.user, args.p, args.n, args.k, args.le, args.t)
+                clean_old(args.le, args.ps)
+                key_file_connect(args.host, args.user, args.p, args.n, args.k, args.le, args.t, args.ps)
         except ssh_errors as e:
             print(e)
             cprint('[*]Could not connect to {}.[*]'.format(args.host), 'red')
             quit()
-        searchsploit()
+        if args.ss == True:
+            check_searchsploit()
+            searchsploit()
+        cprint('[*]Done[*]', 'green')
     except KeyboardInterrupt:
         print('\n')
         quit()

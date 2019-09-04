@@ -33,17 +33,20 @@ positional arguments:
 
 optional arguments:
   -h, --help        show this help message and exit
-  -n [port_number]  port number (default is 22).
-  -p password       password for user.
+  -n [port_number]  port number (default is 22)
+  -p password       password for user
   -k key_file       location of RSA or DSA Key file
+  -ss               run run package list against searchsploit database
   -le               run LinEnum.sh and return LE_report
   -t                add thorough switch to -le LinEnum.sh
+  -ps               run pspy64 or pspy32 with defaults and return pspy_out
 ```
 
 Examples:
 
 `./rest.py 192.168.1.100 vera -p eatadick6969 -n 666` <br />
-`./rest.py 192.168.1.101 jeff -p my_name_a -k ~/.ssh/id_rsa` <br />
-`./rest.py 192.168.1.102 bigwillystyle -k ~/.ssh/id_rsa` <br />
-`./rest.py 192.168.1.103 chuck -p nbuck -le` <br />
-`./rest.py 192.168.1.104 buck -p nchuck -le -t`
+`./rest.py 192.168.1.101 jeff -p my_name_a -k ~/.ssh/id_rsa -ss` <br />
+`./rest.py 192.168.1.102 bigwillystyle -k ~/.ssh/id_rsa` -ss <br />
+`./rest.py 192.168.1.104 buck -p nchuck -le` <br />
+`./rest.py 192.168.1.105 matt_a -p i_love_ben_a -ps` <br />
+`./rest.py 192.168.1.106 ben_a -p i_love_matt_d -ss -le -t -ps`
