@@ -104,7 +104,7 @@ def run_lin_enum(ssh, lin_enum_t):
 
     # run LinEnum.sh on remote machine
     cprint('[*]Running LinEnum.sh.[*]', 'green')
-    cprint('[*]This may take a few minutes...[*]', 'green')
+    cprint('[*]This may take a few minutes...[*]', 'yellow')
     sftp = ssh.open_sftp()
     script = pathlib.Path.cwd() / 'scripts/LinEnum.sh'
     sftp.put(script, '/tmp/LinEnum.sh')
@@ -281,7 +281,7 @@ def searchsploit():
     with open('packages.txt', 'r') as f:
         packages = f.read().split('\n')
     for package in packages:
-        res = subprocess.run(['searchsploit', package, 'linux/local'], capture_output=True)
+        res = subprocess.run(['searchsploit', package], capture_output=True)
         output = res.stdout.decode('utf-8')
         if output != no_result:
             print(output)

@@ -18,18 +18,19 @@ Thanks to mikesz81 for concept and nbulischeck for code review. <br />
     * paramiko >= 2.6.0
 
 > **Note:**
-> It is recommended to git clone this repository into a python virtual <br /> 
+> It is recommended to clone this repository into a python virtual <br /> 
 > envirnment and run `pip install -r requirements.txt`
 
 ## Usage
 
 ```
-usage: rest.py [-h] [-n [port_number]] [-p password] [-k key_file] [-le] [-t]
+usage: rest.py [-h] [-n [port_number]] [-p password] [-k key_file] [-ss] [-le]
+               [-t] [-ps]
                hostname username
 
 positional arguments:
   hostname          hostname or IP address of remote machine
-  username          username used to login to host.
+  username          username used to login to host
 
 optional arguments:
   -h, --help        show this help message and exit
