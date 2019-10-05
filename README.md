@@ -12,7 +12,7 @@ Thanks to mikesz81 for concept and nbulischeck for code review. <br />
 
 * linux (tested in kali-2019.2)
 * searchsploit
-* python>=3.6
+* python>=3.7
 * pip
     * termcolor >= 1.1.0
     * paramiko >= 2.6.0
