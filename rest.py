@@ -292,15 +292,16 @@ def searchsploit():
             exploits.write(pack)
 
 
-def clean_old(lin_enum, pspy):
+def clean_old(lin_enum, pspy, ss):
             
     # removes files from past runs
     path = pathlib.Path.cwd() / 'packages.txt'
-    if path.is_file():
-        path.unlink()
-    path = pathlib.Path.cwd() / 'exploits.txt'
-    if path.is_file():
-        path.unlink()
+    if ss == True:
+        if path.is_file():
+            path.unlink()
+        path = pathlib.Path.cwd() / 'exploits.txt'
+        if path.is_file():
+            path.unlink()
     path = pathlib.Path.cwd() / 'LE_report'
     if lin_enum == True:
         if path.is_file():
@@ -318,7 +319,7 @@ def main():
         args = get_args()
         try:
             if args.k == None:
-                clean_old(args.le, args.ps)
+                clean_old(args.le, args.ps, args.ss)
                 password_connect(args.host, args.user, args.p, args.n, args.le, args.t, args.ps)
             elif args.k != None:
                 clean_old(args.le, args.ps)
