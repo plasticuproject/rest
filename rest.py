@@ -85,7 +85,7 @@ def get_args():
     group.add_argument('-u', 'user', '--user', type = str, metavar='username', help='username used to login to host or a single username to enumerate')
     group.add_argument('-U', '--userlist', type = str, help = 'Give a file containing a list of users')
     parser.add_argument('host', type=str, metavar='hostname', help='hostname or IP address of remote machine')
-    parser.add_argument('-P', '--port', type=int, metavar='port_number', nargs='?', help='port number (default is 22)', default=22)
+    parser.add_argument('-n,', '-P', '--port', type=int, metavar='port_number', nargs='?', help='port number (default is 22)', default=22)
     parser.add_argument('-p', '--password', type=str, metavar='password', help='password for user')
     parser.add_argument('-k', type=str, metavar='key_file', help='location of RSA or DSA Key file')
     parser.add_argument('-ss', action='store_true', help='run package list against searchsploit database')
