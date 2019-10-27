@@ -4,7 +4,7 @@ This fork of rest from plasticuproject in an effort to add functionality I think
 Remote Exploit Scan Tool <br /> 
 Use SSH credentials to remotely scan linux system <br />
 packages for known exploits in Exploit-DB and run <br />
-basic enumeration scripts. <br />
+basic enumeration scripts <br />
 
 Currently works against Debian and RHEL based systems. <br />
 Bug testing, additions, and rewrites are welcome, just submit an issue or pull request. <br />
@@ -26,8 +26,8 @@ Thanks to mikesz81 for concept and nbulischeck for code review. <br />
 ## Usage
 
 ```
-usage: rest.py [-h] [-n [port_number]] [-p password] [-k key_file] [-ss] [-le]
-               [-t] [-ps]
+usage: rest.py [-h] [-n, -P, [port_number]] [-p password] [-k key_file] [-ss] [-le]
+               [-t] [-ps] [-u single username for enumeration] [-U userlist for enum]
                hostname username
 
 positional arguments:
@@ -36,7 +36,9 @@ positional arguments:
 
 optional arguments:
   -h, --help        show this help message and exit
-  -n [port_number]  port number (default is 22)
+  -n, -P, --port    [port_number]  port number (default is 22)
+  -u                single username for enumeration
+  -U                userlist for enumeration
   -p password       password for user
   -k key_file       location of RSA or DSA Key file
   -ss               run package list against searchsploit database
@@ -50,6 +52,8 @@ Examples:
 `./rest.py 192.168.1.100 vera -p eatadick6969 -n 666` <br />
 `./rest.py 192.168.1.101 jeff -p my_name_a -k ~/.ssh/id_rsa -ss` <br />
 `./rest.py 192.168.1.102 bigwillystyle -k ~/.ssh/id_rsa` -ss <br />
-`./rest.py 192.168.1.104 buck -p nchuck -le` <br />
-`./rest.py 192.168.1.105 matt_a -p i_love_ben_a -ps` <br />
-`./rest.py 192.168.1.106 ben_a -p i_love_matt_d -ss -le -t -ps`
+`./rest.py 192.168.1.103 buck -p nchuck -le` <br />
+`./rest.py 192.168.1.104 matt_a -p i_love_ben_a -ps` <br />
+`./rest.py 192.168.1.105 ben_a -p i_love_matt_d -ss -le -t -ps`
+`./rest.py 192.168.1.106 -u admin`
+`./rest.py 192.168.1.107 -U userlist.txt`
