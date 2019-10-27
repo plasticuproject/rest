@@ -1,4 +1,6 @@
 # rest
+This fork of rest from plasticuproject in an effort to add functionality I think would add value to it. 
+
 Remote Exploit Scan Tool <br /> 
 Use SSH credentials to remotely scan linux system <br />
 packages for known exploits in Exploit-DB and run <br />
