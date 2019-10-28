@@ -26,7 +26,7 @@ Thanks to mikesz81 for concept and nbulischeck for code review. <br />
 ## Usage
 
 ```
-usage: rest.py [-h] [-n, -P, [port_number]] [-p password] [-k key_file] [-ss] [-le]
+usage: rest.py [-h] [-n, [port_number]] [-p password] [-k key_file] [-ss] [-le]
                [-t] [-ps] [-u single username for enumeration] [-U userlist for enum]
                hostname username
 
@@ -36,9 +36,9 @@ positional arguments:
 
 optional arguments:
   -h, --help        show this help message and exit
-  -n, -P, --port    [port_number]  port number (default is 22)
-  -u                single username for enumeration
-  -U                userlist for enumeration
+  -n, --port        [port_number]  port number (default is 22)
+  -u test_user      single username for enumeration
+  -U list.txt       userlist for enumeration
   -p password       password for user
   -k key_file       location of RSA or DSA Key file
   -ss               run package list against searchsploit database
