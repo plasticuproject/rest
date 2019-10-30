@@ -36,7 +36,7 @@ positional arguments:
 
 optional arguments:
   -h, --help        show this help message and exit
-  -n,               [port_number]  port number (default is 22)
+  -n, [port_number] port number (default is 22)
   -p password       password for user
   -k key_file       location of RSA or DSA Key file
   -ss               run package list against searchsploit database
