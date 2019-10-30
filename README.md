@@ -1,5 +1,4 @@
 # rest
-This fork of rest from plasticuproject in an effort to add functionality I think would add value to it. 
 
 Remote Exploit Scan Tool <br /> 
 Use SSH credentials to remotely scan linux system <br />
@@ -9,6 +8,7 @@ basic enumeration scripts <br />
 Currently works against Debian and RHEL based systems. <br />
 Bug testing, additions, and rewrites are welcome, just submit an issue or pull request. <br />
 Thanks to mikesz81 for concept and nbulischeck for code review. <br />
+Addded jaws-enum.ps1 for windows systems. <br />
 
 ## Dependencies
 
@@ -36,7 +36,7 @@ positional arguments:
 
 optional arguments:
   -h, --help        show this help message and exit
-  -n, [port_number] port number (default is 22)
+  -n [port_number]  port number (default is 22)
   -p password       password for user
   -k key_file       location of RSA or DSA Key file
   -ss               run package list against searchsploit database
