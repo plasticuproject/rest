@@ -3,7 +3,7 @@
 Remote Exploit Scan Tool <br /> 
 Use SSH credentials to remotely scan linux system <br />
 packages for known exploits in Exploit-DB and run <br />
-basic enumeration scripts <br />
+basic enumeration scripts. <br />
 
 Currently works against Debian and RHEL based systems. <br />
 Bug testing, additions, and rewrites are welcome, just submit an issue or pull request. <br />
@@ -26,7 +26,7 @@ Addded jaws-enum.ps1 for windows systems. <br />
 ## Usage
 
 ```
-usage: rest.py [-h] [-n, [port_number]] [-p password] [-k key_file] [-ss] [-le]
+usage: rest.py [-h] [-n [port_number]] [-p password] [-k key_file] [-ss] [-le]
                [-t] [-ps] [-js]
                hostname username
 
