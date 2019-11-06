@@ -55,6 +55,7 @@ def get_args():
     parser.add_argument('-le', action='store_true', help='run LinEnum.sh and return LE_report')
     parser.add_argument('-t', action='store_true', help='add thorough switch to -le LinEnum.sh')
     parser.add_argument('-ps', action='store_true', help='run pspy64 or pspy32 with defaults and return pspy_out')
+    parser.add_argument('-js', action='store_true', help='run jaws-enum.ps1 and return jaws-report')
     args = parser.parse_args()
     return args
 
@@ -134,6 +135,36 @@ def run_lin_enum(ssh, lin_enum_t):
     ssh.exec_command('rm /tmp/LE_report_test')
     ssh.exec_command('rm /tmp/LinEnum.sh')
 
+
+def run_jaws(ssh):
+    
+    # run jaws-enum.ps1 on remote machine
+    cprint('[*]Running jaws-enum.ps1.[*]', 'green')
+    cprint('[*]This may take a few minutes...[*]', 'yellow')
+    sftp = ssh.open_sftp()
+    script = pathlib.Path.cwd() / 'scripts/.ps1'
+    sftp.put(script, 'C:\Windows\System32\spool\drivers\color\jaws-enum.ps1')
+    transport = ssh.get_transport()
+    channel = transport.open_session()
+    command = 'powershell.exe -ExecutionPolicy Bypass -File .\jaws-enum.ps1 -OutputFilename C:\Windows\System32\spool\drivers\color\jaws-report.txt'
+        if sftp_exists(sftp, 'C:\Windows\System32\spool\drivers\color\jaws-report.txt') == True:
+        ssh.exec_command('Remove-Item –Path C:\Windows\System32\spool\drivers\color\jaws-report.txt')
+    report = pathlib.Path.cwd() / 'jaws-report.txt'
+    finished = 'write-output $output'
+    running = True
+    while running:
+        if sftp_exists(sftp, 'C:\Windows\System32\spool\drivers\color\jaws-enum.ps1') == True:
+            ssh.exec_command('Copy-Item "C:\Windows\System32\spool\drivers\color\jaws-report.txt" -Destination "C:\Windows\System32\spool\drivers\color\jaws-report_test.txt"')
+            remote_file = sftp.open('C:\Windows\System32\spool\drivers\color\jaws-report_test.txt', 'r')
+            for line in remote_file:
+                if finished in line:
+                    running = False
+    cprint('[*]Downloading jaws-enum.ps1 jaws_report...[*]', 'green')
+    sftp.get('C:\Windows\System32\spool\drivers\color\JAWS-report.txt', report)
+    ssh.exec_command('Remove-Item –Path C:\Windows\System32\spool\drivers\color\jaws-report.txt')
+    ssh.exec_command('Remove-Item –Path C:\Windows\System32\spool\drivers\color\jaws-report_test.txt')
+    ssh.exec_command('Remove-Item –Path C:\Windows\System32\spool\drivers\color\jaws-enum.ps1')
+    ssh.exec_command('Remove-Item –Path C:\Windows\System32\spool\drivers\color\jaws*')
 
 def run_pspy(ssh):
 
@@ -320,10 +351,10 @@ def main():
         try:
             if args.k == None:
                 clean_old(args.le, args.ps, args.ss)
-                password_connect(args.host, args.user, args.p, args.n, args.le, args.t, args.ps)
+                password_connect(args.host, args.user, args.p, args.n, args.le, args.t, args.ps, args.js)
             elif args.k != None:
                 clean_old(args.le, args.ps)
-                key_file_connect(args.host, args.user, args.p, args.n, args.k, args.le, args.t, args.ps)
+                key_file_connect(args.host, args.user, args.p, args.n, args.k, args.le, args.t, args.ps, args.js)
         except ssh_errors as e:
             print(e)
             cprint('[*]Could not connect to {}.[*]'.format(args.host), 'red')
@@ -339,4 +370,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-
