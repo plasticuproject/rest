@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 
 #MIT License
-#Copyright (C) 2019 plasticuproject.pm.me
+#Copyright (C) 2019 plasticuproject@pm.me
 #https://github.com/plasticuproject/rest
 #Thanks to mikesz81 for concept and nbulischeck for code review
 
@@ -322,7 +322,7 @@ def main():
                 clean_old(args.le, args.ps, args.ss)
                 password_connect(args.host, args.user, args.p, args.n, args.le, args.t, args.ps)
             elif args.k != None:
-                clean_old(args.le, args.ps)
+                clean_old(args.le, args.ps, args.ss)
                 key_file_connect(args.host, args.user, args.p, args.n, args.k, args.le, args.t, args.ps)
         except ssh_errors as e:
             print(e)
