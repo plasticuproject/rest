@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 
 #MIT License
-#Copyright (C) 2019 plasticuproject.pm.me
+#Copyright (C) 2019 plasticuproject@pm.me
 #https://github.com/plasticuproject/rest
 #Thanks to mikesz81 for concept and nbulischeck for code review
+#linpeas.sh script added by Dividesbyzer0
 
 
 from termcolor import cprint
@@ -55,7 +56,7 @@ def get_args():
     parser.add_argument('-le', action='store_true', help='run LinEnum.sh and return LE_report')
     parser.add_argument('-t', action='store_true', help='add thorough switch to -le LinEnum.sh')
     parser.add_argument('-ps', action='store_true', help='run pspy64 or pspy32 with defaults and return pspy_out')
-    parser.add_argument('-js', action='store_true', help='run jaws-enum.ps1 and return jaws-report')
+    parser.add_argument('-lp', action='store_true', help='run linpeas.sh and return LP_report')
     args = parser.parse_args()
     return args
 
@@ -136,35 +137,35 @@ def run_lin_enum(ssh, lin_enum_t):
     ssh.exec_command('rm /tmp/LinEnum.sh')
 
 
-def run_jaws(ssh):
+def run_linpeas(ssh):
     
-    # run jaws-enum.ps1 on remote machine
-    cprint('[*]Running jaws-enum.ps1.[*]', 'green')
+    # run linpeas.sh on remote machine
+    cprint('[*]Running linpeas.sh.[*]', 'green')
     cprint('[*]This may take a few minutes...[*]', 'yellow')
     sftp = ssh.open_sftp()
-    script = pathlib.Path.cwd() / 'scripts/.ps1'
-    sftp.put(script, 'C:\Windows\System32\spool\drivers\color\jaws-enum.ps1')
+    script = pathlib.Path.cwd() / 'scripts/linpeas.sh'
+    sftp.put(script, '/tmp/linpeas.sh')
     transport = ssh.get_transport()
     channel = transport.open_session()
-    command = 'powershell.exe -ExecutionPolicy Bypass -File .\jaws-enum.ps1 -OutputFilename C:\Windows\System32\spool\drivers\color\jaws-report.txt'
-        if sftp_exists(sftp, 'C:\Windows\System32\spool\drivers\color\jaws-report.txt') == True:
-        ssh.exec_command('Remove-Item –Path C:\Windows\System32\spool\drivers\color\jaws-report.txt')
-    report = pathlib.Path.cwd() / 'jaws-report.txt'
+    command = 'chmod +x /tmp/linpeas.sh && /tmp/./linpeas.sh > /tmp/LP_report'
+        if sftp_exists(sftp, '/tmp/LP_report') == True:
+        ssh.exec_command('rm /tmp/LP_report')
+    report = pathlib.Path.cwd() / 'LP_report.txt'
     finished = 'write-output $output'
     running = True
     while running:
-        if sftp_exists(sftp, 'C:\Windows\System32\spool\drivers\color\jaws-enum.ps1') == True:
-            ssh.exec_command('Copy-Item "C:\Windows\System32\spool\drivers\color\jaws-report.txt" -Destination "C:\Windows\System32\spool\drivers\color\jaws-report_test.txt"')
-            remote_file = sftp.open('C:\Windows\System32\spool\drivers\color\jaws-report_test.txt', 'r')
+        if sftp_exists(sftp, '/tmp/LP_report') == True:
+            ssh.exec_command('cp /tmp/LP_report /tmp/LP_report_test')
+            remote_file = sftp.open('/tmp/LP_report_test', 'r')
             for line in remote_file:
                 if finished in line:
                     running = False
-    cprint('[*]Downloading jaws-enum.ps1 jaws_report...[*]', 'green')
-    sftp.get('C:\Windows\System32\spool\drivers\color\JAWS-report.txt', report)
-    ssh.exec_command('Remove-Item –Path C:\Windows\System32\spool\drivers\color\jaws-report.txt')
-    ssh.exec_command('Remove-Item –Path C:\Windows\System32\spool\drivers\color\jaws-report_test.txt')
-    ssh.exec_command('Remove-Item –Path C:\Windows\System32\spool\drivers\color\jaws-enum.ps1')
-    ssh.exec_command('Remove-Item –Path C:\Windows\System32\spool\drivers\color\jaws*')
+    cprint('[*]Downloading linpeas.sh LP_report...[*]', 'green')
+    sftp.get('/tmp/LP_report', report)
+    ssh.exec_command('rm /tmp/LP_report')
+    ssh.exec_command('rm /tmp/LP_report_test')
+    ssh.exec_command('rm /tmp/linpeas.sh')
+
 
 def run_pspy(ssh):
 
@@ -189,24 +190,24 @@ def run_pspy(ssh):
     cprint('[*]Saving pspy_out...[*]', 'green')
 
 
-def password_connect(hostname, user, secret, port_num, lin_enum, lin_enum_t, pspy):
+def password_connect(hostname, user, secret, port_num, lin_enum, lin_enum_t, linpeas, pspy):
 
     # connects to remote machine via ssh with user/pass combo
     cprint('[*]Connecting to {} as {}...[*]'.format(hostname, user), 'green')
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(hostname, username=user, password=secret, port=port_num)
-    transfer(ssh, lin_enum, lin_enum_t, pspy)
+    transfer(ssh, lin_enum, lin_enum_t, linpeas, pspy)
 
 
-def key_file_connect(hostname, user, port_num, secret, key_file, lin_enum, lin_enum_t, pspy):
+def key_file_connect(hostname, user, port_num, secret, key_file, lin_enum, lin_enum_t, linpeas, pspy):
 
     # connects to remote machine via ssh with private keyfile and downloads list of instaled packages
     cprint('[*]Connecting to {} as {}...[*]'.format(hostname, user), 'green')
     ssh = paramiko.SSHClient()
     ssh.set_missing_host_key_policy(paramiko.AutoAddPolicy())
     ssh.connect(hostname, username=user, password=secret, port=port_num, key_filename=key_file)
-    transfer(ssh, lin_enum, lin_enum_t, pspy)
+    transfer(ssh, lin_enum, lin_enum_t, linpeas, pspy)
 
 
 def format_dpkg_file():
@@ -323,7 +324,7 @@ def searchsploit():
             exploits.write(pack)
 
 
-def clean_old(lin_enum, pspy, ss):
+def clean_old(lin_enum, linpeas, pspy, ss):
             
     # removes files from past runs
     path = pathlib.Path.cwd() / 'packages.txt'
@@ -335,6 +336,10 @@ def clean_old(lin_enum, pspy, ss):
             path.unlink()
     path = pathlib.Path.cwd() / 'LE_report'
     if lin_enum == True:
+        if path.is_file():
+            path.unlink()
+    path = pathlib.Path.cwd() / 'LP_report'
+    if linpeas == True:
         if path.is_file():
             path.unlink()
     path = pathlib.Path.cwd() / 'pspy_out'
@@ -350,11 +355,11 @@ def main():
         args = get_args()
         try:
             if args.k == None:
-                clean_old(args.le, args.ps, args.ss)
-                password_connect(args.host, args.user, args.p, args.n, args.le, args.t, args.ps, args.js)
+                clean_old(args.le, args.lp, args.ps, args.ss)
+                password_connect(args.host, args.user, args.p, args.n, args.le, args.t, args.lp, args.ps)
             elif args.k != None:
-                clean_old(args.le, args.ps)
-                key_file_connect(args.host, args.user, args.p, args.n, args.k, args.le, args.t, args.ps, args.js)
+                clean_old(args.le, args.ps, args.ss)
+                key_file_connect(args.host, args.user, args.p, args.n, args.k, args.le, args.t, args.lp, args.ps)
         except ssh_errors as e:
             print(e)
             cprint('[*]Could not connect to {}.[*]'.format(args.host), 'red')
