@@ -55,8 +55,8 @@ def get_args():
     parser.add_argument('-ss', action='store_true', help='run package list against searchsploit database')
     parser.add_argument('-le', action='store_true', help='run LinEnum.sh and return LE_report')
     parser.add_argument('-t', action='store_true', help='add thorough switch to -le LinEnum.sh')
-    parser.add_argument('-ps', action='store_true', help='run pspy64 or pspy32 with defaults and return pspy_out')
     parser.add_argument('-lp', action='store_true', help='run linpeas.sh and return LP_report')
+    parser.add_argument('-ps', action='store_true', help='run pspy64 or pspy32 with defaults and return pspy_out')
     args = parser.parse_args()
     return args
 
