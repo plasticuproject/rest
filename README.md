@@ -51,5 +51,5 @@ Examples:
 `./rest.py 192.168.1.102 bigwillystyle -k ~/.ssh/id_rsa -ss` <br />
 `./rest.py 192.168.1.104 buck -p nchuck -le` <br />
 `./rest.py 192.168.1.105 matt_d -p i_love_ben_a -ps` <br />
-`./rest.py 192.168.1.106 ben_a -p i_love_matt_d -ss -le -t -ps`
+`./rest.py 192.168.1.106 ben_a -p i_love_matt_d -ss -le -t -ps`<br />
 `./rest.py 192.168.1.104 zer0 -p adding_things -lp` <br />
